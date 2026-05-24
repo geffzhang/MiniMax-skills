@@ -36,6 +36,16 @@ triggers:
 
 Create, edit, and format DOCX documents via CLI tools or direct C# scripts built on OpenXML SDK (.NET).
 
+## OfficeCLI fast path
+
+If the task is a standard Word read, inspect, convert, or simple mutation workflow, first read `../office-expert/references/officecli-adapter.md` and run:
+
+```bash
+python ../office-expert/scripts/officecli_doctor.py --json
+```
+
+Use OfficeCLI only when the doctor reports it is available and installed command help exposes the needed operation. Keep this skill's OpenXML SDK workflow for academic papers, Word forms, custom styles, comments, revisions, template application, XSD validation, and any case that needs precise DOCX structure control.
+
 ## Setup
 
 **First time:** `bash scripts/setup.sh` (or `powershell scripts/setup.ps1` on Windows, `--minimal` to skip optional deps).

@@ -14,6 +14,16 @@ metadata:
 
 Handle the request directly. Do NOT spawn sub-agents. Always write the output file the user requests.
 
+## OfficeCLI fast path
+
+If the task is a standard Excel read, inspect, convert, or simple workbook mutation workflow, first read `../office-expert/references/officecli-adapter.md` and run:
+
+```bash
+python ../office-expert/scripts/officecli_doctor.py --json
+```
+
+Use OfficeCLI only when the doctor reports it is available and installed command help exposes the needed operation. Keep this skill's XML workflow for formulas, zero-format-loss edits, financial models, dashboards, formula validation, workbook repair, and professional formatting.
+
 ## Task Routing
 
 | Task | Method | Guide |

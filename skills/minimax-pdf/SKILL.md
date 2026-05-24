@@ -22,6 +22,16 @@ metadata:
 
 Three tasks. One skill.
 
+## OfficeCLI fast path
+
+If the task is a standard PDF extraction or Office-to-PDF conversion workflow, first read `../office-expert/references/officecli-adapter.md` and run:
+
+```bash
+python ../office-expert/scripts/officecli_doctor.py --json
+```
+
+Use OfficeCLI only when the doctor reports it is available and installed command help exposes the needed operation. Keep this skill's visual PDF workflow for cover design, print-ready layout, PDF form filling, document reformatting, typography, and color identity.
+
 ## Read `design/design.md` before any CREATE or REFORMAT work.
 
 ---

@@ -16,6 +16,16 @@ metadata:
 
 This skill handles all PowerPoint tasks: reading/analyzing existing presentations, editing template-based decks via XML manipulation, and creating presentations from scratch using PptxGenJS. It includes a complete design system (color palettes, fonts, style recipes) and detailed guidance for every slide type.
 
+## OfficeCLI fast path
+
+If the task is a standard PowerPoint read, inspect, convert, or simple deck mutation workflow, first read `../office-expert/references/officecli-adapter.md` and run:
+
+```bash
+python ../office-expert/scripts/officecli_doctor.py --json
+```
+
+Use OfficeCLI only when the doctor reports it is available and installed command help exposes the needed operation. Keep this skill's PptxGenJS workflow for original deck design, pitch decks, Morph animation decks, 3D Morph decks, visual variety, slide composition, and text-based QA.
+
 ## Quick Reference
 
 | Task | Approach |
