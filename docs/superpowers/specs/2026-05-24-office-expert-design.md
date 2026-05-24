@@ -1,246 +1,335 @@
-# Office Expert Integration Design
+# Office 专家融合设计
 
-## Goal
+## 目标
 
-Build an Office expert experience in MiniMax-skills by combining OfficeCli with the existing MiniMax Office skills. The primary delivery target is MiniMax-skills, while OpenClaw.NET should be able to install, discover, inspect, and invoke the resulting skills through its existing skill/plugin compatibility surface.
+在 MiniMax-skills 中打造一个统一的 Office 专家体验，融合两套能力：
 
-The design uses OfficeCli as an externally installed shared backend. MiniMax-skills will not vendor OfficeCli source code, package OfficeCli binaries, or modify OpenClaw runtime code.
+- MiniMax 现有 Office skills：`minimax-docx`、`minimax-xlsx`、`pptx-generator`、`minimax-pdf`。
+- OfficeCLI 现有 skills：`officecli`、`officecli-docx`、`officecli-pptx`、`officecli-xlsx` 以及若干场景化 Office skills。
 
-## Decisions
+交付目标仍以 MiniMax-skills 为主。OpenClaw.NET 不需要改 runtime，只需要能通过现有 skill/plugin 兼容机制安装、发现、检查和调用融合后的 MiniMax skills。
 
-- Use OfficeCli as the unified fast-path backend for standard Office operations.
-- Keep the existing MiniMax DOCX, XLSX, PPTX, and PDF skills as professional workflows and fallbacks.
-- Add a new aggregate `office-expert` skill as the user-facing Office entrypoint.
-- Also enhance the four existing Office skills so direct file-type routing still benefits from OfficeCli.
-- Add a doctor script that detects OfficeCli availability and reports actionable status without installing anything.
+本阶段不把 OfficeCLI 源码、二进制或 `E:\GitHub\OfficeCLI\skills` 目录整体搬进 MiniMax-skills。OfficeCLI 作为外部安装的命令工具存在，OfficeCLI skills 作为设计、路由、命令纪律和 QA gate 的参考体系被内联吸收。
 
-## Architecture
+## 已确认决策
 
-### Aggregate skill
+- 新增 `office-expert` 作为统一 Office 聚合入口。
+- `office-expert` 同时吸收 MiniMax Office skills 和 OfficeCLI skills 的路由规则。
+- 不新增 `officecli-docx`、`officecli-pptx` 等独立 MiniMax skill，避免重复入口。
+- 不 vendor OfficeCLI，不打包 OfficeCLI 二进制。
+- 采用“外部安装 + doctor 检测”的方式发现 OfficeCLI。
+- 保留 MiniMax 现有四个 Office skills 的专业能力，并给它们增加 OfficeCLI fast path 引用。
+- OfficeCLI skills 采用“内联融合”：提炼触发词、场景层、命令工作流、验证门禁和设计规则，不复制整份 skill 目录。
 
-Add `skills/office-expert/SKILL.md` as the primary Office expert entrypoint. It should trigger on Office, Word, Excel, PowerPoint, PPT, PDF, DOCX, XLSX, spreadsheet, presentation, and related Chinese terms.
+## OfficeCLI skill 体系映射
 
-The aggregate skill is responsible for:
+`E:\GitHub\OfficeCLI\skills` 是参考输入，按三层吸收到 MiniMax-skills。
 
-- Classifying the user request by file type and task intent.
-- Running or recommending the OfficeCli doctor check before choosing an OfficeCli route.
-- Choosing between OfficeCli and the relevant MiniMax skill.
-- Delegating specialist work to `minimax-docx`, `minimax-xlsx`, `pptx-generator`, or `minimax-pdf`.
-- Preserving source files by default and writing outputs to new files.
+### 核心层
 
-### Shared OfficeCli adapter reference
+- `officecli`
+- `officecli-docx`
+- `officecli-pptx`
+- `officecli-xlsx`
 
-Add `skills/office-expert/references/officecli-adapter.md` as the single source of truth for OfficeCli integration rules.
+核心层用于补强 `office-expert` 和共享适配文档中的命令路线、help-first 习惯、schema-first 约束、增量修改流程和输出验证要求。
 
-It should document:
+### 场景层
 
-- External installation expectations.
-- How to configure the command path, including an environment variable such as `OFFICECLI_COMMAND`.
-- How to run the doctor script.
-- When OfficeCli should be preferred.
-- When MiniMax specialist skills should be preferred.
-- Failure and fallback behavior.
-- Output verification rules.
+- `officecli-academic-paper`
+- `officecli-word-form`
+- `officecli-data-dashboard`
+- `officecli-financial-model`
+- `officecli-pitch-deck`
 
-The four existing Office skills should link to this reference instead of duplicating command-level guidance.
+场景层不作为独立 MiniMax skill 暴露，而是进入 `office-expert` 的高层意图路由：
 
-### Existing skill enhancement
+- academic paper → `minimax-docx` + OfficeCLI academic-paper 规则。
+- word form → `minimax-docx` + OfficeCLI word-form 规则。
+- data dashboard → `minimax-xlsx` + OfficeCLI dashboard 规则。
+- financial model → `minimax-xlsx` + OfficeCLI financial-model 规则。
+- pitch deck → `pptx-generator` + OfficeCLI pitch-deck 规则。
 
-Update these skills with a small OfficeCli fast-path section:
+### 高级 PPT 动效层
+
+- `morph-ppt`
+- `morph-ppt-3d`
+
+这两类能力进入 `office-expert` 和 `pptx-generator` 的 PPT 高级路线：
+
+- morph animation deck → `pptx-generator` + morph-ppt 命名、ghosting、verify 和 style library 规则。
+- 3D morph deck → `pptx-generator` + morph-ppt-3d 的 GLB 模型、镜头、模型内容布局和兼容性检查规则。
+
+## 整体架构
+
+### 聚合 skill：`office-expert`
+
+新增 `skills/office-expert/SKILL.md`，作为用户面对的统一入口。触发词覆盖 Office、Word、Excel、PowerPoint、PPT、PDF、DOCX、XLSX、spreadsheet、presentation，以及相关中文表达。
+
+`office-expert` 负责：
+
+- 根据文件类型、任务意图和场景词识别任务。
+- 读取 OfficeCLI skill 体系提炼出的路由规则。
+- 判断是否需要 OfficeCLI doctor 检测。
+- 选择 OfficeCLI command workflow、MiniMax specialist skill，或两者组合。
+- 将专业任务委托到 `minimax-docx`、`minimax-xlsx`、`pptx-generator`、`minimax-pdf`。
+- 对场景任务套用 OfficeCLI 的场景规则，例如 academic paper、dashboard、financial model、pitch deck、morph deck。
+- 默认保护原文件，输出到新文件。
+
+### 共享适配文档：`officecli-adapter.md`
+
+新增 `skills/office-expert/references/officecli-adapter.md`，作为 OfficeCLI 融合规则的唯一来源。
+
+它不只是安装说明，还要定义：
+
+- OfficeCLI 外部安装要求。
+- 命令路径配置方式，例如 `OFFICECLI_COMMAND`。
+- `officecli_doctor.py` 的使用方式。
+- OfficeCLI core skill 到 MiniMax skill 的映射。
+- OfficeCLI scene skill 到 `office-expert` 场景路由的映射。
+- OfficeCLI 的 help-first、schema-first、shell quoting、incremental mutation 和 QA gate 原则。
+- morph-ppt 的命名、ghosting、verify、style library 引用规则。
+- OfficeCLI 失败、不可用或输出不可验证时的回退规则。
+
+四个现有 Office skills 引用这份文档，不在各自文件里重复维护完整 OfficeCLI 命令规则。
+
+### 现有 MiniMax Office skills 增强
+
+修改以下文件，增加简短的 OfficeCLI fast path 与共享适配文档引用：
 
 - `skills/minimax-docx/SKILL.md`
 - `skills/minimax-xlsx/SKILL.md`
 - `skills/pptx-generator/SKILL.md`
 - `skills/minimax-pdf/SKILL.md`
 
-Each skill should keep its current specialist workflow. The OfficeCli section should only say when to use the shared adapter before falling back to the existing workflow.
+这些修改不能重写原有专业流程。MiniMax 的 OpenXML、XLSX XML、PptxGenJS、PDF 设计系统仍是专业能力主体。
 
-## Routing Rules
+## 路由规则
 
-### File type classification
+### 文件类型识别
 
-- `.docx` and `.doc` route to Word handling.
-- `.xlsx`, `.xlsm`, `.csv`, and `.tsv` route to Excel handling.
-- `.pptx` and `.ppt` route to PowerPoint handling.
-- `.pdf` routes to PDF handling.
-- Multi-file or cross-format requests route through `office-expert` first.
+- `.docx`、`.doc` → Word 路线。
+- `.xlsx`、`.xlsm`、`.csv`、`.tsv` → Excel 路线。
+- `.pptx`、`.ppt` → PowerPoint 路线。
+- `.pdf` → PDF 路线。
+- 多文件或跨格式任务 → 先进入 `office-expert` 聚合路线。
 
-### Task intent classification
+### 任务意图识别
 
-The aggregate skill should classify requests into these intents:
+`office-expert` 识别这些意图：
 
-- Read, summarize, or extract text.
-- Convert file formats.
-- Replace text or fill placeholders.
-- Create a new file.
-- Beautify, brand, or visually redesign a document.
-- Validate, repair, or compare files.
-- Generate across formats, such as Excel to PPT or DOCX to PDF.
+- 读取、摘要、提取文本。
+- 格式转换。
+- 批量替换、模板填写。
+- 创建新文件。
+- 美化、排版、品牌化。
+- 校验、修复、对比。
+- 跨格式生成，例如 Excel → PPT、DOCX → PDF、PDF → Word。
+- 场景化生成，例如论文、表单、仪表盘、财务模型、融资路演、Morph 动效演示。
 
-### OfficeCli preferred cases
+### OfficeCLI 优先场景
 
-Prefer OfficeCli when the task is a standard Office operation that it can complete reliably:
+优先走 OfficeCLI command workflow 的情况：
 
-- Reading document structure or metadata.
-- Extracting text.
-- Standard file conversion.
-- Batch processing.
-- Simple content replacement.
-- Template filling where OfficeCli has direct support.
-- Operations that do not require sophisticated visual design or deep OpenXML editing.
+- 标准 Office 文件读取。
+- 结构、元数据、文本提取。
+- 标准格式转换。
+- 批量处理。
+- 简单文本替换。
+- OfficeCLI 已有直接支持的模板填写。
+- 需要严格命令参数、schema、增量修改和验证门禁的 Office 操作。
+- 不需要复杂视觉设计、深度 OpenXML 手工控制或 MiniMax 专属设计系统的任务。
 
-### MiniMax specialist preferred cases
+### MiniMax specialist 优先场景
 
-Prefer the existing MiniMax skills when the task needs specialist behavior:
+优先走 MiniMax 现有 skills 的情况：
 
-- High-quality visual design.
-- PPT slide planning, visual variety, and PptxGenJS generation.
-- PDF cover design, token-based design systems, form filling, or reformatting.
-- XLSX formulas, professional financial formatting, formula validation, or zero-format-loss XML editing.
-- DOCX OpenXML precision, style systems, comments, track changes, template styling, or XSD gate checks.
-- Any case where OfficeCli is unavailable, fails, or produces unverifiable output.
+- 高质量视觉设计。
+- PPT 页面设计、多 slide 编排、视觉多样性和 PptxGenJS 生成。
+- PDF 封面、排版、品牌系统、表单填写或重排。
+- XLSX 公式、专业财务格式、公式校验、零格式损失 XML 编辑。
+- DOCX OpenXML 精细结构、样式系统、批注、修订、模板格式和 XSD gate check。
+- OfficeCLI 不可用、命令失败或输出无法验证。
 
-### Fallback behavior
+### 场景路由
 
-- If `officecli_doctor.py` fails, the skill should explain the OfficeCli issue and continue with the relevant MiniMax workflow when possible.
-- If OfficeCli execution fails, do not blindly retry. Fall back to the specialist skill or ask the user if the failure affects the requested outcome.
-- If output verification fails, treat the OfficeCli result as failed.
-- Never overwrite the original user file by default.
+- academic paper：使用 OfficeCLI academic-paper 的论文结构、引用、公式、交叉引用规则，执行层落到 `minimax-docx` 和 OfficeCLI DOCX workflow。
+- word form：使用 OfficeCLI word-form 的内容控件、表单字段、保护和填写规则，执行层落到 `minimax-docx` 和 OfficeCLI DOCX workflow。
+- data dashboard：使用 OfficeCLI data-dashboard 的 KPI、图表、布局和数据验证规则，执行层落到 `minimax-xlsx` 和 OfficeCLI XLSX workflow。
+- financial model：使用 OfficeCLI financial-model 的模型结构、公式、假设区、DCF/LBO 等规则，执行层落到 `minimax-xlsx` 和 OfficeCLI XLSX workflow。
+- pitch deck：使用 OfficeCLI pitch-deck 的叙事结构和投资人视角规则，执行层落到 `pptx-generator` 和 OfficeCLI PPTX workflow。
+- morph animation deck：使用 morph-ppt 的 Morph 命名、ghosting、verify 和样式库规则，执行层落到 `pptx-generator`。
+- 3D morph deck：使用 morph-ppt-3d 的 GLB 模型、相机、模型内容布局和兼容性规则，执行层落到 `pptx-generator`。
 
-### Cross-format workflows
+### 回退规则
 
-For cross-format workflows, use OfficeCli for structured extraction or conversion and MiniMax skills for content reconstruction or design.
+- `officecli_doctor.py` 失败时，说明 OfficeCLI 不可用原因，并尽量继续走 MiniMax 专业流程。
+- OfficeCLI 命令失败时，不盲目重试，改走对应 MiniMax specialist skill，或在结果受影响时询问用户。
+- 输出文件无法读取、文本抽取为空、校验失败时，视为 OfficeCLI 输出失败。
+- 默认不覆盖用户原文件。
 
-Examples:
+### 跨格式任务
 
-- Excel to PPT: extract or analyze spreadsheet data first, then use `pptx-generator` for slide design.
-- DOCX to PDF: use OfficeCli for conversion if available, then use `minimax-pdf` when visual redesign or reformatting is required.
-- PDF to Word: use OfficeCli for extraction/conversion if supported, then use `minimax-docx` for structured DOCX reconstruction when needed.
+跨格式任务采用“OfficeCLI 结构处理 + MiniMax 内容重组/设计”的组合模式。
 
-## Files to Add
+例子：
+
+- Excel → PPT：先提取或分析表格数据，再用 `pptx-generator` 做幻灯片设计。
+- DOCX → PDF：OfficeCLI 做标准转换；如果需要美化或重排，再用 `minimax-pdf`。
+- PDF → Word：OfficeCLI 做提取/转换；如果需要结构化重建，再用 `minimax-docx`。
+- Excel dashboard → PPT：`officecli-data-dashboard` 规则帮助识别 KPI 和图表，`pptx-generator` 负责演示稿表达。
+
+## 新增文件
 
 ### `skills/office-expert/SKILL.md`
 
-Main aggregate skill with frontmatter, trigger description, routing workflow, OfficeCli fast path, MiniMax fallback rules, and safety rule to preserve originals.
+聚合入口，包含 frontmatter、触发描述、文件类型路由、场景路由、OfficeCLI skills 内联融合规则、OfficeCLI fast path、MiniMax fallback、安全输出规则。
 
 ### `skills/office-expert/references/officecli-adapter.md`
 
-Shared adapter reference used by the aggregate skill and by the four existing Office skills.
+共享适配与融合规则文档。它连接三件事：OfficeCLI 命令、OfficeCLI skills 规则、MiniMax specialist skills。
 
 ### `skills/office-expert/scripts/officecli_doctor.py`
 
-Environment detection script.
+环境检测脚本，只检测不安装。
 
-Expected behavior:
+预期行为：
 
-- Check `OFFICECLI_COMMAND` first, then `officecli` on `PATH`.
-- Attempt to run a version command.
-- Print human-readable output by default.
-- Support `--json` for machine-readable output.
-- Return `0` when OfficeCli is usable.
-- Return `1` when OfficeCli is unavailable or version detection fails.
-- Do not install, download, or modify system state.
+- 先检查 `OFFICECLI_COMMAND`，再检查 PATH 上的 `officecli`。
+- 尝试运行版本命令。
+- 默认输出人类可读结果。
+- 支持 `--json` 输出机器可读结果。
+- OfficeCLI 可用时返回 `0`。
+- OfficeCLI 不可用或版本检测失败时返回 `1`。
+- 不下载、不安装、不修改系统状态。
 
-## Files to Modify
+## 修改文件
 
 ### `README.md`
 
-Add `office-expert` to the skills table. Describe it as a unified Office expert that combines OfficeCli with MiniMax DOCX, XLSX, PPTX, and PDF skills.
+在 skills 表中新增 `office-expert`。描述为：统一 Office 专家，融合 OfficeCLI skills 与 MiniMax DOCX/XLSX/PPTX/PDF skills。
 
 ### `README_zh.md`
 
-Add the same skill entry in Chinese.
+同步新增中文说明。
 
 ### `.claude-plugin/plugin.json`
 
-Add Office expert keywords if the plugin metadata uses keyword discovery.
+如果插件 metadata 使用关键词发现，加入 `office-expert` 和 Office 相关关键词。
 
 ### `.cursor-plugin/plugin.json`
 
-Add Office expert keywords if the plugin metadata uses keyword discovery.
+如果插件 metadata 使用关键词发现，加入 `office-expert` 和 Office 相关关键词。
 
-### Existing Office skills
+### 现有 Office skills
 
-Add concise OfficeCli fast-path references to:
+增加简短 OfficeCLI fast path 和共享适配文档引用：
 
 - `skills/minimax-docx/SKILL.md`
 - `skills/minimax-xlsx/SKILL.md`
 - `skills/pptx-generator/SKILL.md`
 - `skills/minimax-pdf/SKILL.md`
 
-The changes should not rewrite the existing specialist workflows.
+### 不直接修改或复制的 OfficeCLI 文件
 
-## Verification
+以下目录只作为参考，不复制到 MiniMax-skills：
 
-### Skill structure validation
+- `E:\GitHub\OfficeCLI\skills\officecli*`
+- `E:\GitHub\OfficeCLI\skills\morph-ppt*`
 
-Run the repository's skill validation script:
+实现时可以读取这些 skill 的触发词、路由规则、命令纪律和 QA gates，但最终维护入口在 MiniMax-skills。
+
+## 验证策略
+
+### skill 结构验证
+
+运行 MiniMax-skills 现有校验脚本：
 
 ```bash
 python .claude/skills/pr-review/scripts/validate_skills.py
 ```
 
-Expected result: `office-expert` has valid frontmatter, a kebab-case directory, and no structural violations.
+预期结果：`office-expert` frontmatter 合规，目录名是 kebab-case，没有结构错误。
 
-### Doctor validation
+### doctor 验证
 
-Without OfficeCli installed:
-
-```bash
-python skills/office-expert/scripts/officecli_doctor.py --json
-```
-
-Expected result: JSON reports `available: false`, includes a reason, and gives installation/configuration guidance.
-
-With OfficeCli installed:
+无 OfficeCLI 环境：
 
 ```bash
 python skills/office-expert/scripts/officecli_doctor.py --json
 ```
 
-Expected result: JSON reports `available: true`, the command path, and a version or version-check result.
+预期结果：JSON 报告 `available: false`，包含原因和修复建议。
 
-### Documentation consistency
+有 OfficeCLI 环境：
 
-Check that:
+```bash
+python skills/office-expert/scripts/officecli_doctor.py --json
+```
 
-- `README.md` and `README_zh.md` both list `office-expert`.
-- All four existing Office skills reference the shared adapter.
-- Routing rules in the aggregate skill do not contradict the specialist skills.
+预期结果：JSON 报告 `available: true`，包含命令路径和版本检测结果。
 
-### OpenClaw compatibility
+### 文档一致性验证
 
-If OpenClaw CLI is available, run:
+检查：
+
+- `README.md` 和 `README_zh.md` 都列出 `office-expert`。
+- 四个 MiniMax Office skills 都引用共享 adapter。
+- `office-expert` 的核心层、场景层、动效层路由与共享 adapter 一致。
+- 没有把 OfficeCLI 场景 skills 暴露成重复 MiniMax skill 入口。
+
+### OpenClaw 兼容验证
+
+如果本机有 OpenClaw CLI，运行：
 
 ```bash
 openclaw skills inspect ./skills/office-expert
 ```
 
-If OpenClaw CLI is not available, rely on the standard `SKILL.md` structure validation and plugin metadata checks.
+如果没有 OpenClaw CLI，则以标准 `SKILL.md` 结构验证和插件 metadata 检查为准。
 
-## Risks
+### OfficeCLI skills 融合验证
 
-### OfficeCli command interface may change
+实现后抽查这些场景是否能路由到正确路线：
 
-Keep command details centralized in the shared adapter reference so updates do not require editing multiple skills.
+- “写一篇带引用和公式的学术论文” → academic paper → `minimax-docx` + OfficeCLI DOCX 规则。
+- “做一个可填写的 Word 表单” → word form → `minimax-docx` + OfficeCLI form 规则。
+- “用 Excel 做 KPI dashboard” → data dashboard → `minimax-xlsx` + dashboard 规则。
+- “做一个 DCF 财务模型” → financial model → `minimax-xlsx` + financial model 规则。
+- “做融资路演 PPT” → pitch deck → `pptx-generator` + pitch deck 规则。
+- “做 Morph 动画 PPT” → morph deck → `pptx-generator` + morph-ppt 规则。
+- “做带 GLB 模型的 3D Morph PPT” → 3D morph deck → `pptx-generator` + morph-ppt-3d 规则。
 
-### OfficeCli capability boundaries may be incomplete
+## 风险
 
-Treat OfficeCli as a standard Office operation backend, not as a replacement for MiniMax design and specialist document workflows.
+### OfficeCLI command interface 变化
 
-### Platform differences
+命令细节集中在共享 adapter 中，避免四个 MiniMax Office skills 分散硬编码。
 
-OfficeCli installation paths and dependencies may vary across Windows, macOS, and Linux. The doctor script should detect and report status only.
+### OfficeCLI skills 与 MiniMax skills 重叠
 
-### Routing conflicts
+不复制 OfficeCLI skills，不新增重复入口。`office-expert` 负责统一路由，现有 MiniMax specialist skills 负责专业执行。
 
-`office-expert` should be the broad aggregate entrypoint. Existing file-specific skills should remain valid direct entrypoints. Shared adapter guidance keeps the rules aligned.
+### OfficeCLI 能力边界不完整
 
-## Explicit Non-Goals
+OfficeCLI 只作为标准 Office 操作和场景规则来源，不替代 MiniMax 的设计系统、OpenXML 深度资料、PptxGenJS 生成和 PDF 美化流程。
 
-- Do not vendor OfficeCli source code into MiniMax-skills.
-- Do not package OfficeCli binaries.
-- Do not change OpenClaw.NET runtime code.
-- Do not add an OpenClaw native plugin for this phase.
-- Do not promise OfficeCli coverage for advanced Word, Excel, PowerPoint, or PDF scenarios.
-- Do not overwrite original Office files by default.
+### 平台差异
+
+Windows、macOS、Linux 上 OfficeCLI 安装路径和依赖可能不同。doctor 只检测和报告，不安装。
+
+### Morph/3D PPT 依赖复杂
+
+morph-ppt 和 morph-ppt-3d 涉及动画命名、ghosting、GLB 模型兼容性和样式资产。实现时只提炼规则，避免直接复制大量模板资产，除非后续单独确认许可和维护策略。
+
+## 明确不做
+
+- 不把 OfficeCLI 源码 vendor 到 MiniMax-skills。
+- 不打包 OfficeCLI 二进制。
+- 不整体复制 `E:\GitHub\OfficeCLI\skills`。
+- 不新增 `officecli-docx`、`officecli-pptx`、`officecli-xlsx` 等独立 MiniMax skill。
+- 不让 OfficeCLI 场景 skills 与 MiniMax skills 形成重复入口。
+- 不修改 OpenClaw.NET runtime 代码。
+- 不新增 OpenClaw 原生插件。
+- 不承诺 OfficeCLI 覆盖所有 Word、Excel、PowerPoint、PDF 高级场景。
+- 不默认覆盖用户原始 Office 文件。
