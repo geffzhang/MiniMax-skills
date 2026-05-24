@@ -40,6 +40,17 @@ class OfficeCliDoctorTests(unittest.TestCase):
         self.assertTrue(payload["version"])
         self.assertEqual(payload["source"], "OFFICECLI_COMMAND")
 
+    def test_reports_available_for_windows_exe_without_suffix(self):
+        executable = Path(sys.executable)
+        if executable.suffix.lower() != ".exe":
+            self.skipTest("Windows .exe suffix behavior only")
+        without_suffix = str(executable.with_suffix(""))
+        code, payload = self.run_doctor({"OFFICECLI_COMMAND": without_suffix})
+        self.assertEqual(code, 0)
+        self.assertTrue(payload["available"])
+        self.assertEqual(payload["command"], without_suffix)
+        self.assertEqual(payload["resolvedCommand"], sys.executable)
+
 
 if __name__ == "__main__":
     unittest.main()
