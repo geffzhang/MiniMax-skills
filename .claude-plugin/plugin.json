@@ -8,5 +8,5 @@
   "homepage": "https://github.com/MiniMax-AI/skills",
   "repository": "https://github.com/MiniMax-AI/skills",
   "license": "MIT",
-  "keywords": ["skills", "frontend", "fullstack", "android", "ios", "shader", "gif", "sticker", "pdf", "pptx", "presentation", "xlsx", "excel", "spreadsheet", "docx", "word", "document", "multimodal", "video", "image", "audio", "music", "minimax"]
+  "keywords": ["skills", "frontend", "fullstack", "android", "ios", "shader", "gif", "sticker", "office", "officecli", "word", "docx", "document", "excel", "xlsx", "spreadsheet", "financial-model", "dashboard", "powerpoint", "ppt", "pptx", "presentation", "pitch-deck", "morph", "pdf", "multimodal", "video", "image", "audio", "music", "minimax"]
 }
