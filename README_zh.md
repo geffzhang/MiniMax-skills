@@ -69,6 +69,29 @@ ln -s ~/.minimax-skills/skills/* ~/.config/opencode/skills/
 
 重启 OpenCode 以发现技能。详见 [`.opencode/INSTALL_zh.md`](.opencode/INSTALL_zh.md)。
 
+### OpenClaw.NET
+
+Office 工作流需要同时安装两个 skills 来源，让 OpenClaw.NET 同时发现 MiniMax Office 路由和 OfficeCLI 原生工作流 skills：
+
+```bash
+git clone https://github.com/iOfficeAI/OfficeCLI.git
+git clone https://github.com/MiniMax-AI/skills.git
+```
+
+在 OpenClaw.NET 中配置两个 skills 路径：
+
+```text
+/path/to/OfficeCLI/skills
+/path/to/MiniMax-skills/skills
+```
+
+OfficeCLI 可执行程序仍然作为外部命令安装。使用 Office 路由前先验证：
+
+```bash
+cd /path/to/MiniMax-skills
+python skills/office-expert/scripts/officecli_doctor.py --json
+```
+
 ### VS Code
 
 当前仓库还没有提供独立的 VS Code 扩展。

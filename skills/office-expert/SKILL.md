@@ -18,7 +18,9 @@ metadata:
 
 # Office Expert
 
-Use this skill as the first stop for Office work. It routes tasks across OfficeCLI command workflows and MiniMax specialist skills.
+Use this skill as the first stop for Office work. It routes tasks across OfficeCLI command workflows, OfficeCLI native skills, and MiniMax specialist skills.
+
+When OpenClaw.NET has both `OfficeCLI/skills` and `MiniMax-skills/skills` registered, keep OfficeCLI native scene skills available as direct execution paths and use this skill to coordinate cross-tool routing.
 
 ## Required reference
 

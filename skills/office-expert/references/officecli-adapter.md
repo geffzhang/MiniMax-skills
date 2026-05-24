@@ -6,7 +6,16 @@ This reference defines how `office-expert` and the MiniMax Office skills use Off
 
 OfficeCLI is external. This repository does not vendor OfficeCLI source code and does not package OfficeCLI binaries.
 
-Before choosing an OfficeCLI route, run:
+For OpenClaw.NET, install both skills sources and register both skills paths:
+
+```text
+/path/to/OfficeCLI/skills
+/path/to/MiniMax-skills/skills
+```
+
+This keeps OfficeCLI native skills available for direct execution while `office-expert` coordinates routing across OfficeCLI and MiniMax specialist skills.
+
+Before choosing an OfficeCLI command route, run:
 
 ```bash
 python skills/office-expert/scripts/officecli_doctor.py --json
@@ -17,7 +26,7 @@ The command path is resolved in this order:
 1. `OFFICECLI_COMMAND`
 2. `officecli` on `PATH`
 
-If the doctor reports `available: false`, explain the reason and continue with the MiniMax specialist workflow when the requested task can still be completed.
+If the doctor reports `available: false`, explain the reason and continue with the MiniMax specialist workflow when the requested task can still be completed. If OfficeCLI native skills are not registered in the host, continue with the inline OfficeCLI rules in this reference instead of assuming those skills can be invoked directly.
 
 ## Help-first rule
 

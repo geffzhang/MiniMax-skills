@@ -69,6 +69,29 @@ ln -s ~/.minimax-skills/skills/* ~/.config/opencode/skills/
 
 Restart OpenCode to discover the skills. See [`.opencode/INSTALL.md`](.opencode/INSTALL.md) for details.
 
+### OpenClaw.NET
+
+For Office workflows, install both skill sources so OpenClaw.NET can discover the MiniMax Office router and the native OfficeCLI workflow skills:
+
+```bash
+git clone https://github.com/iOfficeAI/OfficeCLI.git
+git clone https://github.com/MiniMax-AI/skills.git
+```
+
+Configure OpenClaw.NET with both skills paths:
+
+```text
+/path/to/OfficeCLI/skills
+/path/to/MiniMax-skills/skills
+```
+
+OfficeCLI itself remains an external command. Verify it before using Office routes:
+
+```bash
+cd /path/to/MiniMax-skills
+python skills/office-expert/scripts/officecli_doctor.py --json
+```
+
 ### VS Code
 
 This repository does not currently ship a standalone VS Code extension.
